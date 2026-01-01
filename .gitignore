@@ -15,3 +15,9 @@ target
 
 # IDE Files
 .idea
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+.terraform.lock.hcl

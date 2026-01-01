@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent { label 'oracle-3' }
 
     environment {
         IMAGE_NAME = "sudarshanuprety/esewa"
@@ -25,7 +25,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh '''
-                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                    docker build --platform linux/amd64 -t ${IMAGE_NAME}:${IMAGE_TAG} .
                 '''
             }
         }
