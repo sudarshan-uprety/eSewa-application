@@ -4,6 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "sudarshanuprety/esewa"
         IMAGE_TAG  = "latest"
+        IMAGE_BUILD_NUMBER = "${env.BUILD_NUMBER}"
     }
 
     stages {
@@ -45,6 +46,7 @@ pipeline {
                         docker buildx build \\
                             --platform linux/amd64 \\
                             -t ${IMAGE_NAME}:${IMAGE_TAG} \\
+                            -t ${IMAGE_NAME}:${IMAGE_BUILD_NUMBER} \\
                             --push .
                     """
                 }
@@ -77,7 +79,7 @@ pipeline {
                         
                         # Update Kubernetes deployment with new image
                         kubectl set image deployment/esewa-app \\
-                            esewa-app=${IMAGE_NAME}:${IMAGE_TAG} \\
+                            esewa-app=${IMAGE_NAME}:${IMAGE_BUILD_NUMBER} \\
                             -n esewans
                         
                         echo "=== Waiting for rollout ==="
@@ -85,6 +87,7 @@ pipeline {
                         
                         echo "✅ Deployment completed!"
                         echo "New image: ${IMAGE_NAME}:${IMAGE_TAG}"
+                        echo "New image: ${IMAGE_NAME}:${IMAGE_BUILD_NUMBER}"
                     """
                 }
             }
