@@ -32,8 +32,7 @@ pipeline {
                     # Build for AMD64 using buildx
                     docker buildx build \
                         --platform linux/amd64 \
-                        -t ${IMAGE_NAME}:${IMAGE_TAG} \
-                        --load .  # Use --load to make image available locally
+                        -t ${IMAGE_NAME}:${IMAGE_TAG}
                     
                     # Push to registry
                     docker push ${IMAGE_NAME}:${IMAGE_TAG}
