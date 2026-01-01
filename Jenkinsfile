@@ -24,9 +24,20 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh '''
-                    docker build --platform linux/amd64 -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                '''
+                sh """
+                    # Create and use buildx builder
+                    docker buildx create --name mybuilder --use
+                    docker buildx inspect --bootstrap
+                    
+                    # Build for AMD64 using buildx
+                    docker buildx build \
+                        --platform linux/amd64 \
+                        -t ${IMAGE_NAME}:${IMAGE_TAG} \
+                        --load .  # Use --load to make image available locally
+                    
+                    # Push to registry
+                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                """
             }
         }
 
