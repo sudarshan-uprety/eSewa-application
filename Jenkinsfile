@@ -46,13 +46,6 @@ pipeline {
                             --platform linux/amd64 \\
                             -t ${IMAGE_NAME}:${IMAGE_TAG} \\
                             --push .
-
-
-                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                        docker push ${IMAGE_NAME}:latest
-                        
-                        echo "✅ Images pushed:"
-                        echo "  - ${IMAGE_NAME}:latest"
                     """
                 }
             }
