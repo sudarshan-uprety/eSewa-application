@@ -129,12 +129,10 @@ pipeline {
 
     post {
         success {
-            echo "🚀 Deployment successful! Image: ${IMAGE_NAME}:${IMAGE_TAG}"
-            // You can add Slack/Teams notification here
+            echo "🚀 Deployment successful! Image: ${IMAGE_NAME}:${IMAGE_BUILD_NUMBER}"
         }
         failure {
             echo "❌ Deployment failed"
-            // You can add notification here
         }
     }
 }
