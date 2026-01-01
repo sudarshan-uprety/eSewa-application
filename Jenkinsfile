@@ -25,17 +25,15 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh """
-                    # Create and use buildx builder
-                    docker buildx create --name mybuilder --use
-                    docker buildx inspect --bootstrap
+                    docker buildx rm mybuilder || true
                     
-                    # Build for AMD64 using buildx
-                    docker buildx build \
-                        --platform linux/amd64 \
-                        -t ${IMAGE_NAME}:${IMAGE_TAG}
+                    docker buildx create --name mybuilder --use --bootstrap
                     
-                    # Push to registry
-                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                    # Build for AMD64
+                    docker buildx build \\
+                        --platform linux/amd64 \\
+                        -t ${IMAGE_NAME}:${IMAGE_TAG} \\
+                        --push .
                 """
             }
         }
