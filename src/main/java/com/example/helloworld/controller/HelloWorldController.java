@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @RestController
-@RequestMapping("/api") // Base path for all API endpoints
+@RequestMapping("/api")
 public class HelloWorldController {
     private static final Logger log = LoggerFactory.getLogger(HelloWorldController.class);
 
