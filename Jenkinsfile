@@ -182,44 +182,44 @@ pipeline {
         // }
     }
     
-    post {
-        success {
-            script {
-                sh """
-                    echo ""
-                    echo "======================================"
-                    echo "✅ DEPLOYMENT SUCCESSFUL!"
-                    echo "======================================"
-                    echo "Application: ${APP_NAME}"
-                    echo "Namespace: ${NAMESPACE}"
-                    echo "Image: ${IMAGE_NAME}:${IMAGE_TAG}"
-                    echo "======================================"
-                    echo ""
-                    echo "Useful commands:"
-                    echo "  View pods:    kubectl get pods -n ${NAMESPACE}"
-                    echo "  View logs:    kubectl logs -f deployment/${APP_NAME} -n ${NAMESPACE}"
-                    echo "  Port forward: kubectl port-forward svc/${APP_NAME} 8080:80 -n ${NAMESPACE}"
-                    echo "  Describe:     kubectl describe deployment ${APP_NAME} -n ${NAMESPACE}"
-                    echo "======================================"
-                """
-            }
-        }
-        failure {
-            script {
-                sh """
-                    echo ""
-                    echo "======================================"
-                    echo "❌ DEPLOYMENT FAILED"
-                    echo "======================================"
-                    echo ""
-                    echo "Debug commands:"
-                    echo "  kubectl get pods -n ${NAMESPACE}"
-                    echo "  kubectl describe deployment ${APP_NAME} -n ${NAMESPACE}"
-                    echo "  kubectl logs deployment/${APP_NAME} -n ${NAMESPACE}"
-                    echo "  kubectl get events -n ${NAMESPACE} --sort-by='.lastTimestamp'"
-                    echo "======================================"
-                """
-            }
-        }
-    }
+    // post {
+    //     success {
+    //         script {
+    //             sh """
+    //                 echo ""
+    //                 echo "======================================"
+    //                 echo "✅ DEPLOYMENT SUCCESSFUL!"
+    //                 echo "======================================"
+    //                 echo "Application: ${APP_NAME}"
+    //                 echo "Namespace: ${NAMESPACE}"
+    //                 echo "Image: ${IMAGE_NAME}:${IMAGE_TAG}"
+    //                 echo "======================================"
+    //                 echo ""
+    //                 echo "Useful commands:"
+    //                 echo "  View pods:    kubectl get pods -n ${NAMESPACE}"
+    //                 echo "  View logs:    kubectl logs -f deployment/${APP_NAME} -n ${NAMESPACE}"
+    //                 echo "  Port forward: kubectl port-forward svc/${APP_NAME} 8080:80 -n ${NAMESPACE}"
+    //                 echo "  Describe:     kubectl describe deployment ${APP_NAME} -n ${NAMESPACE}"
+    //                 echo "======================================"
+    //             """
+    //         }
+    //     }
+    //     failure {
+    //         script {
+    //             sh """
+    //                 echo ""
+    //                 echo "======================================"
+    //                 echo "❌ DEPLOYMENT FAILED"
+    //                 echo "======================================"
+    //                 echo ""
+    //                 echo "Debug commands:"
+    //                 echo "  kubectl get pods -n ${NAMESPACE}"
+    //                 echo "  kubectl describe deployment ${APP_NAME} -n ${NAMESPACE}"
+    //                 echo "  kubectl logs deployment/${APP_NAME} -n ${NAMESPACE}"
+    //                 echo "  kubectl get events -n ${NAMESPACE} --sort-by='.lastTimestamp'"
+    //                 echo "======================================"
+    //             """
+    //         }
+    //     }
+    // }
 }
