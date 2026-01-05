@@ -15,6 +15,18 @@ pipeline {
                 checkout scm
             }
         }
+
+        stage('Build WAR') {
+            steps {
+                sh '''
+                    echo "=== Building Spring Boot Application ==="
+                    mvn clean package -DskipTests
+                    
+                    echo "=== Checking WAR file ==="
+                    ls -lh target/*.war
+                '''
+            }
+        }
         
         stage('Build Docker Image') {
             steps {
