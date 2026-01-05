@@ -15,33 +15,6 @@ pipeline {
                 checkout scm
             }
         }
-        
-        stage('Build Docker Image') {
-            steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'DOCKER',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )
-                ]) {
-                    sh """
-                        echo "=== Logging into Docker Hub ==="
-                        echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
-                        
-                        echo "=== Building Docker image ==="
-                        docker buildx rm mybuilder || true
-                        docker buildx create --name mybuilder --use --bootstrap
-
-                        docker buildx build \\
-                            --platform linux/amd64,linux/arm64 \\
-                            -t ${IMAGE_NAME}:${IMAGE_TAG} \\
-                            -t ${IMAGE_NAME}:${IMAGE_BUILD_NUMBER} \\
-                            --push .
-                    """
-                }
-            }
-        }
 
         stage('Setup Kubernetes Context') {
             steps {
