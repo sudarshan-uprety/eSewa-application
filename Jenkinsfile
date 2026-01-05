@@ -62,25 +62,25 @@ pipeline {
             }
         }
         
-        stage('Pull Latest Image') {
-            steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'DOCKERHUB_CREDENTIALS',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )
-                ]) {
-                    sh """
-                        echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
-                        docker pull ${IMAGE_NAME}:${IMAGE_TAG}
+        // stage('Pull Latest Image') {
+        //     steps {
+        //         withCredentials([
+        //             usernamePassword(
+        //                 credentialsId: 'DOCKERHUB_CREDENTIALS',
+        //                 usernameVariable: 'DOCKER_USER',
+        //                 passwordVariable: 'DOCKER_PASS'
+        //             )
+        //         ]) {
+        //             sh """
+        //                 echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
+        //                 docker pull ${IMAGE_NAME}:${IMAGE_TAG}
                         
-                        echo "Image pulled"
-                        docker images | grep ${IMAGE_NAME}
-                    """
-                }
-            }
-        }
+        //                 echo "Image pulled"
+        //                 docker images | grep ${IMAGE_NAME}
+        //             """
+        //         }
+        //     }
+        // }
         
         stage('Deploy to Kubernetes') {
             steps {
