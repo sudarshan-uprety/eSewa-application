@@ -27,10 +27,12 @@ pipeline {
         stage('Create Namespace if Not Exists') {
             steps {
                 sh """
-                    if ! kubectl get namespace ${NAMESPACE} &> /dev/null; then
+                    if ! kubectl get namespace ${NAMESPACE} > /dev/null 2>&1; then
                         echo "Namespace ${NAMESPACE} does not exist. Creating..."
                         kubectl create namespace ${NAMESPACE}
                         echo "Namespace created"
+                    else
+                        echo "Namespace ${NAMESPACE} already exists"
                     fi
                 """
             }
@@ -190,12 +192,6 @@ pipeline {
                     echo "======================================"
                 """
             }
-        }
-        always {
-            sh '''
-                echo "=== Cleaning up local Docker images ==="
-                docker image prune -f
-            '''
-        }
+        }x
     }
 }
