@@ -1,138 +1,201 @@
 pipeline {
     agent { label 'oracle-3' }
-
+    
     environment {
         IMAGE_NAME = "sudarshanuprety/esewa"
         IMAGE_TAG  = "latest"
-        IMAGE_BUILD_NUMBER = "${env.BUILD_NUMBER}"
+        NAMESPACE = "esewa-namespace"
+        APP_NAME = "esewa-app"
     }
-
+    
     stages {
         stage('Checkout Code') {
             steps {
                 checkout scm
             }
         }
-
-        stage('Build WAR') {
+        
+        stage('Setup Kubernetes Context') {
             steps {
-                sh '''
-                    echo "=== Building Spring Boot Application ==="
-                    mvn clean package -DskipTests
-                    
-                    echo "=== Checking WAR file ==="
-                    ls -lh target/*.war
-                '''
+                sh """
+                    kubectl cluster-info
+                    kubectl get nodes
+                """
             }
         }
-
-        stage('Build Docker Image') {
+        
+        stage('Create Namespace if Not Exists') {
+            steps {
+                sh """
+                    if ! kubectl get namespace ${NAMESPACE} &> /dev/null; then
+                        echo "Namespace ${NAMESPACE} does not exist. Creating..."
+                        kubectl create namespace ${NAMESPACE}
+                        echo "Namespace created"
+                    fi
+                """
+            }
+        }
+        
+        stage('Create Docker Registry Secret') {
             steps {
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'DOCKER',
+                        credentialsId: 'DOCKERHUB_CREDENTIALS',
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                     )
                 ]) {
                     sh """
-                        echo "=== Logging into Docker Hub ==="
-                        echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
+                        kubectl create secret docker-registry dockerhub-secret \\
+                            --docker-server=https://index.docker.io/v1/ \\
+                            --docker-username=\$DOCKER_USER \\
+                            --docker-password=\$DOCKER_PASS \\
+                            --docker-email=your-email@example.com \\
+                            -n ${NAMESPACE} \\
+                            --dry-run=client -o yaml | kubectl apply -f -
                         
-                        echo "=== Building Docker image ==="
-                        docker buildx rm mybuilder || true
-                        docker buildx create --name mybuilder --use --bootstrap
-
-                        docker buildx build \\
-                            --platform linux/amd64 \\
-                            -t ${IMAGE_NAME}:${IMAGE_TAG} \\
-                            -t ${IMAGE_NAME}:${IMAGE_BUILD_NUMBER} \\
-                            --push .
+                        echo "✅ Docker registry secret configured"
                     """
                 }
             }
         }
-
-        stage('Deploy to AKS') {
+        
+        stage('Pull Latest Image') {
             steps {
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'AZURE_SP',
-                        usernameVariable: 'AZURE_CLIENT_ID',
-                        passwordVariable: 'AZURE_CLIENT_SECRET'
+                        credentialsId: 'DOCKERHUB_CREDENTIALS',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
                     )
                 ]) {
                     sh """
-                        echo "=== Logging into Azure ==="
-                        az login --service-principal \\
-                            -u $AZURE_CLIENT_ID \\
-                            -p $AZURE_CLIENT_SECRET \\
-                            --tenant $AZURE_TENANT_ID
+                        echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
+                        docker pull ${IMAGE_NAME}:${IMAGE_TAG}
                         
-                        az account set --subscription $AZURE_SUBSCRIPTION_ID
-                        
-                        echo "=== Deploying to AKS ==="
-                        az aks get-credentials \\
-                            --resource-group esewa-resources \\
-                            --name esewa-cluster \\
-                            --overwrite-existing
-                        
-                        # Update Kubernetes deployment with new image
-                        kubectl set image deployment/esewa-app \\
-                            esewa-app=${IMAGE_NAME}:${IMAGE_BUILD_NUMBER} \\
-                            -n esewans
-                        
-                        echo "=== Waiting for rollout ==="
-                        kubectl rollout status deployment/esewa-app -n esewans --timeout=300s
-                        
-                        echo "✅ Deployment completed!"
-                        echo "New image: ${IMAGE_NAME}:${IMAGE_TAG}"
-                        echo "New image: ${IMAGE_NAME}:${IMAGE_BUILD_NUMBER}"
+                        echo "Image pulled"
+                        docker images | grep ${IMAGE_NAME}
                     """
                 }
             }
         }
-
+        
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh """                    
+                    if [ -d "k8s" ]; then
+                        echo "Found k8s directory"
+                        kubectl apply -f k8s/ -n ${NAMESPACE}
+                    elif [ -d "kubernetes" ]; then
+                        echo "Found kubernetes directory"
+                        kubectl apply -f kubernetes/ -n ${NAMESPACE}
+                    elif [ -f "deployment.yaml" ]; then
+                        echo "Found deployment.yaml in root"
+                        kubectl apply -f deployment.yaml -n ${NAMESPACE}
+                        [ -f "service.yaml" ] && kubectl apply -f service.yaml -n ${NAMESPACE}
+                    else
+                        echo "Please add YAML files in one of these locations:"
+                        exit 1
+                    fi
+                """
+            }
+        }
+        
+        stage('Wait for Rollout') {
+            steps {
+                sh """
+                    # Wait for deployment to complete
+                    kubectl rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=300s
+                    
+                    echo "Rollout completed"
+                """
+            }
+        }
+        
         stage('Verify Deployment') {
             steps {
                 sh """
                     echo "=== Verifying deployment ==="
                     
-                    az aks get-credentials \\
-                        --resource-group esewa-resources \\
-                        --name esewa-cluster \\
-                        --overwrite-existing
+                    # Get deployment status
+                    kubectl get deployment ${APP_NAME} -n ${NAMESPACE}
                     
-                    echo "--- Pods status ---"
-                    kubectl get pods -n esewans -o wide
+                    # Get pods
+                    kubectl get pods -n ${NAMESPACE} -l app=${APP_NAME}
                     
-                    echo "--- Deployment details ---"
-                    kubectl get deployment esewa-app -n esewans -o yaml | grep -A2 "image:"
+                    RUNNING_PODS=\$(kubectl get pods -n ${NAMESPACE} -l app=${APP_NAME} --field-selector=status.phase=Running --no-headers | wc -l)
                     
-                    echo "--- Testing application ---"
-                    # Get LoadBalancer IP
-                    IP=\$(kubectl get svc esewa-service -n esewans -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-                    if [ ! -z "\$IP" ]; then
-                        echo "Testing: http://\$IP/"
-                        curl -s -o /dev/null -w "HTTP Status: %{http_code}\\n" http://\$IP/ || true
+                    if [ "\$RUNNING_PODS" -ge "1" ]; then
+                        echo ""
+                        echo "\$RUNNING_PODS pod(s) running"
+                        
+                        # Get pod logs (last 20 lines)
+                        echo ""
+                        echo "=== Recent logs ==="
+                        POD_NAME=\$(kubectl get pods -n ${NAMESPACE} -l app=${APP_NAME} -o jsonpath='{.items[0].metadata.name}')
+                        kubectl logs \$POD_NAME -n ${NAMESPACE} --tail=20 || echo "No logs available yet"
                     else
-                        echo "No external IP found, using port-forward"
-                        timeout 10 kubectl port-forward svc/esewa-service -n esewans 8080:8080 &
-                        sleep 3
-                        curl -s -o /dev/null -w "HTTP Status: %{http_code}\\n" http://localhost:8080/ || true
-                        kill %1 2>/dev/null || true
+                        echo ""
+                        echo "No pods are running!"
+                        
+                        # Show pod details for debugging
+                        kubectl describe pods -n ${NAMESPACE} -l app=${APP_NAME}
+                        exit 1
                     fi
+                    
+                    # Get service
+                    kubectl get service -n ${NAMESPACE} -l app=${APP_NAME}
+                    
+                    # kubectl get ingress -n ${NAMESPACE} 2>/dev/null || echo "No ingress found"
                 """
             }
         }
     }
-
+    
     post {
         success {
-            echo "🚀 Deployment successful! Image: ${IMAGE_NAME}:${IMAGE_BUILD_NUMBER}"
+            script {
+                sh """
+                    echo ""
+                    echo "======================================"
+                    echo "✅ DEPLOYMENT SUCCESSFUL!"
+                    echo "======================================"
+                    echo "Application: ${APP_NAME}"
+                    echo "Namespace: ${NAMESPACE}"
+                    echo "Image: ${IMAGE_NAME}:${IMAGE_TAG}"
+                    echo "======================================"
+                    echo ""
+                    echo "Useful commands:"
+                    echo "  View pods:    kubectl get pods -n ${NAMESPACE}"
+                    echo "  View logs:    kubectl logs -f deployment/${APP_NAME} -n ${NAMESPACE}"
+                    echo "  Port forward: kubectl port-forward svc/${APP_NAME} 8080:80 -n ${NAMESPACE}"
+                    echo "  Describe:     kubectl describe deployment ${APP_NAME} -n ${NAMESPACE}"
+                    echo "======================================"
+                """
+            }
         }
         failure {
-            echo "❌ Deployment failed"
+            script {
+                sh """
+                    echo ""
+                    echo "======================================"
+                    echo "❌ DEPLOYMENT FAILED"
+                    echo "======================================"
+                    echo ""
+                    echo "Debug commands:"
+                    echo "  kubectl get pods -n ${NAMESPACE}"
+                    echo "  kubectl describe deployment ${APP_NAME} -n ${NAMESPACE}"
+                    echo "  kubectl logs deployment/${APP_NAME} -n ${NAMESPACE}"
+                    echo "  kubectl get events -n ${NAMESPACE} --sort-by='.lastTimestamp'"
+                    echo "======================================"
+                """
+            }
+        }
+        always {
+            sh '''
+                echo "=== Cleaning up local Docker images ==="
+                docker image prune -f
+            '''
         }
     }
 }

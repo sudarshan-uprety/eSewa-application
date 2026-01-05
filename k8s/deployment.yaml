@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: esewa-app
+  labels:
+    app: esewa-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: esewa-app
+  template:
+    metadata:
+      labels:
+        app: esewa-app
+    spec:
+      imagePullSecrets:
+      - name: dockerhub-secret
+      containers:
+      - name: esewa-app
+        image: sudarshanuprety/esewa:latest
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "production"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 5
