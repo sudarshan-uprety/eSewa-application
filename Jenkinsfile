@@ -59,7 +59,27 @@ pipeline {
                 }
             }
         }
-        
+
+        stage('Apply Kubernetes Manifests') {
+            steps {
+                // Use the secret file from Jenkins
+                withCredentials([file(credentialsId: 'K8-SECRETS', variable: 'KUBECONFIG')]) {
+                    sh '''
+                        kubectl --kubeconfig=$KUBECONFIG --server=https://144.24.96.24:6443 --insecure-skip-tls-verify=true get nodes
+                    '''
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh '''
+                    echo "=== Running Tests ==="
+                    kubectl get nodes -o wide
+                    echo "Tests completed successfully."
+                '''
+            }
+        }
         // stage('Create Namespace') {
         //     steps {
         //         sh """
