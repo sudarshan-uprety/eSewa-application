@@ -197,6 +197,7 @@ pipeline {
                     echo "  kubectl get events -n ${NAMESPACE} --sort-by='.lastTimestamp'"
                     echo "  kubectl describe ingress -n ${NAMESPACE}"
                     echo "======================================"
+                    kubectl rollout undo deployment/esewa-app -n esewa-namespace
                 """
             }
         }
