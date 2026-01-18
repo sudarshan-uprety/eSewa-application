@@ -36,11 +36,15 @@ pipeline {
                     sh """
                         echo \$DOCKERHUB_CREDENTIALS_PSW | docker login -u \$DOCKERHUB_CREDENTIALS_USR --password-stdin
                         
+                        # Build for both amd64 and arm64 platforms
                         docker buildx build \\
-                            --platform linux/amd64 \\
+                            --builder multiarch-builder \\
+                            --platform linux/amd64,linux/arm64 \\
                             -t ${IMAGE_NAME}:${IMAGE_TAG} \\
                             -t ${IMAGE_NAME}:${IMAGE_BUILD_NUMBER} \\
                             --push .
+                        
+                        echo "✅ Multi-platform image pushed successfully"
                         
                         docker logout
                     """
