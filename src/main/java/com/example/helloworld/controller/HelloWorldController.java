@@ -113,14 +113,6 @@ public class HelloWorldController {
 
     @GetMapping("/test-error/{code}")
         public Map<String, Object> triggerError(@PathVariable String code) {
-            Map<String, Object> logData = new HashMap<>();
-            logData.put("status_code", Integer.parseInt(code));
-            logData.put("alert_type", "elk-test");
-            logData.put("endpoint", "/api/test-error/" + code);
-            logData.put("message", "Simulated HTTP error");
-
-            log.error("{}", logData);
-
             switch (code) {
                 case "401":
                     throw new ResponseStatusException(

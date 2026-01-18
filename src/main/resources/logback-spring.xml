@@ -6,7 +6,7 @@
             <customFields>
                 {
                   "application":"esewa-api",
-                  "environment":"aks"
+                  "environment":"pr"oduction"
                 }
             </customFields>
         </encoder>
