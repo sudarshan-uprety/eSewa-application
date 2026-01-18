@@ -8,6 +8,7 @@ pipeline {
         NAMESPACE = "esewa-namespace"
         IMAGE_BUILD_NUMBER = "${env.BUILD_NUMBER}"
         DOCKERHUB_CREDENTIALS = credentials('DOCKER')
+        K8S_SERVER = "https://144.24.96.24:6443"
     }
     
     stages {
@@ -16,26 +17,13 @@ pipeline {
                 checkout scm
             }
         }
-
-        stage('Build WAR') {
-            steps {
-                sh '''
-                    echo "=== Building Spring Boot Application ==="
-                    mvn clean package -DskipTests
-                    
-                    echo "=== Checking WAR file ==="
-                    ls -lh target/*.war
-                '''
-            }
-        }
-
-        stage('Build Docker Image') {
+        
+        stage('Build Maven Project') {
             steps {
                 script {
-                    echo "Building Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
+                    echo "Building Maven project..."
                     sh """
-                        docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:build-${IMAGE_BUILD_NUMBER}
+                        mvn clean package -DskipTests
                     """
                 }
             }
@@ -59,122 +47,102 @@ pipeline {
                 }
             }
         }
-
-        stage('Apply Kubernetes Manifests') {
+        
+        stage('Deploy to Kubernetes') {
+            environment {
+                KUBECONFIG = credentials('K8-SECRETS')
+            }
             steps {
-                // Use the secret file from Jenkins
-                withCredentials([file(credentialsId: 'K8-SECRETS', variable: 'KUBECONFIG')]) {
-                    sh '''
-                        kubectl --kubeconfig=$KUBECONFIG --server=https://144.24.96.24:6443 --insecure-skip-tls-verify=true get nodes
-                    '''
-                }
+                sh """
+                    echo "=== Verifying cluster access ==="
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true get nodes
+                    
+                    echo "=== Creating namespace ==="
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/namespace.yaml || true
+                    
+                    echo "=== Creating Docker Registry Secret ==="
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true create secret docker-registry dockerhub-secret \\
+                        --docker-server=https://index.docker.io/v1/ \\
+                        --docker-username=\$DOCKERHUB_CREDENTIALS_USR \\
+                        --docker-password=\$DOCKERHUB_CREDENTIALS_PSW \\
+                        --docker-email=your-email@example.com \\
+                        -n ${NAMESPACE} \\
+                        --dry-run=client -o yaml | kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f -
+                    
+                    echo "=== Deploying to Kubernetes namespace: ${NAMESPACE} ==="
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/deployment.yaml
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/service.yaml
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/ingress.yaml
+                    
+                    echo "=== Restarting deployment to pull new image ==="
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true rollout restart deployment/${APP_NAME} -n ${NAMESPACE}
+                """
             }
         }
-
-        stage('Test') {
+        
+        stage('Wait for Rollout') {
+            environment {
+                KUBECONFIG = credentials('K8-SECRETS')
+            }
             steps {
-                sh '''
-                    echo "=== Running Tests ==="
-                    kubectl get nodes -o wide
-                    echo "Tests completed successfully."
-                '''
+                sh """
+                    echo "Waiting for deployment to complete..."
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=300s
+                    
+                    echo "Rollout completed successfully"
+                """
             }
         }
-        // stage('Create Namespace') {
-        //     steps {
-        //         sh """
-        //             kubectl apply -f k8s/namespace.yaml || true
-        //         """
-        //     }
-        // }
         
-        // stage('Create Docker Registry Secret') {
-        //     steps {
-        //         sh """
-        //             kubectl create secret docker-registry dockerhub-secret \\
-        //                 --docker-server=https://index.docker.io/v1/ \\
-        //                 --docker-username=\$DOCKERHUB_CREDENTIALS_USR \\
-        //                 --docker-password=\$DOCKERHUB_CREDENTIALS_PSW \\
-        //                 --docker-email=your-email@example.com \\
-        //                 -n ${NAMESPACE} \\
-        //                 --dry-run=client -o yaml | kubectl apply -f -
-        //         """
-        //     }
-        // }
-        
-        // stage('Deploy to Kubernetes') {
-        //     steps {
-        //         sh """
-        //             echo "Deploying to Kubernetes namespace: ${NAMESPACE}"
+        stage('Verify Deployment') {
+            environment {
+                KUBECONFIG = credentials('K8-SECRETS')
+            }
+            steps {
+                sh """
+                    echo "=== Verifying deployment ==="
                     
-        //             # Apply all k8s configurations
-        //             kubectl apply -f k8s/deployment.yaml
-        //             kubectl apply -f k8s/service.yaml
-        //             kubectl apply -f k8s/ingress.yaml
+                    # Get deployment status
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true get deployment ${APP_NAME} -n ${NAMESPACE}
                     
-        //             # Force pods to pull new image
-        //             kubectl rollout restart deployment/${APP_NAME} -n ${NAMESPACE}
-        //         """
-        //     }
-        // }
-        
-        // stage('Wait for Rollout') {
-        //     steps {
-        //         sh """
-        //             echo "Waiting for deployment to complete..."
-        //             kubectl rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=300s
+                    # Get pods
+                    echo ""
+                    echo "=== Pods ==="
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true get pods -n ${NAMESPACE} -l app=${APP_NAME}
                     
-        //             echo "Rollout completed successfully"
-        //         """
-        //     }
-        // }
-        
-        // stage('Verify Deployment') {
-        //     steps {
-        //         sh """
-        //             echo "=== Verifying deployment ==="
+                    # Check running pods
+                    RUNNING_PODS=\$(kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true get pods -n ${NAMESPACE} -l app=${APP_NAME} --field-selector=status.phase=Running --no-headers | wc -l)
                     
-        //             # Get deployment status
-        //             kubectl get deployment ${APP_NAME} -n ${NAMESPACE}
-                    
-        //             # Get pods
-        //             echo ""
-        //             echo "=== Pods ==="
-        //             kubectl get pods -n ${NAMESPACE} -l app=${APP_NAME}
-                    
-        //             # Check running pods
-        //             RUNNING_PODS=\$(kubectl get pods -n ${NAMESPACE} -l app=${APP_NAME} --field-selector=status.phase=Running --no-headers | wc -l)
-                    
-        //             if [ "\$RUNNING_PODS" -ge "1" ]; then
-        //                 echo ""
-        //                 echo "✅ \$RUNNING_PODS pod(s) running successfully"
+                    if [ "\$RUNNING_PODS" -ge "1" ]; then
+                        echo ""
+                        echo "✅ \$RUNNING_PODS pod(s) running successfully"
                         
-        //                 # Get pod logs
-        //                 echo ""
-        //                 echo "=== Recent logs ==="
-        //                 POD_NAME=\$(kubectl get pods -n ${NAMESPACE} -l app=${APP_NAME} -o jsonpath='{.items[0].metadata.name}')
-        //                 kubectl logs \$POD_NAME -n ${NAMESPACE} --tail=20 || echo "No logs available yet"
-        //             else
-        //                 echo ""
-        //                 echo "❌ No pods are running!"
+                        # Get pod logs
+                        echo ""
+                        echo "=== Recent logs ==="
+                        POD_NAME=\$(kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true get pods -n ${NAMESPACE} -l app=${APP_NAME} -o jsonpath='{.items[0].metadata.name}')
+                        kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true logs \$POD_NAME -n ${NAMESPACE} --tail=20 || echo "No logs available yet"
+                    else
+                        echo ""
+                        echo "❌ No pods are running!"
                         
-        //                 # Show pod details for debugging
-        //                 kubectl describe pods -n ${NAMESPACE} -l app=${APP_NAME}
-        //                 exit 1
-        //             fi
+                        # Show pod details for debugging
+                        kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true describe pods -n ${NAMESPACE} -l app=${APP_NAME}
+                        exit 1
+                    fi
                     
-        //             # Get service
-        //             echo ""
-        //             echo "=== Service ==="
-        //             kubectl get service -n ${NAMESPACE} -l app=${APP_NAME}
+                    # Get service
+                    echo ""
+                    echo "=== Service ==="
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true get service -n ${NAMESPACE} -l app=${APP_NAME}
                     
-        //             # Get ingress
-        //             echo ""
-        //             echo "=== Ingress ==="
-        //             kubectl get ingress -n ${NAMESPACE}
-        //         """
-        //     }
-        // }
+                    # Get ingress
+                    echo ""
+                    echo "=== Ingress ==="
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true get ingress -n ${NAMESPACE}
+                """
+            }
+        }
     }
     
     post {
@@ -224,10 +192,9 @@ pipeline {
         }
         always {
             script {
-                // Clean up local Docker images to save space
+                // Clean up - not needed since buildx pushes directly
                 sh """
-                    docker rmi ${IMAGE_NAME}:${IMAGE_TAG} || true
-                    docker rmi ${IMAGE_NAME}:build-${IMAGE_BUILD_NUMBER} || true
+                    echo "Build completed using docker buildx"
                 """
             }
         }
