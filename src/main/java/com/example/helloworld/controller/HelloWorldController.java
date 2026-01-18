@@ -20,7 +20,6 @@ public class HelloWorldController {
 
     @GetMapping("/hello")
     public Map<String, Object> hello() {
-        log.info("API called: GET /api/hello");
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Hello from AKS Deployment!");
         response.put("author", "Sudarshan");
@@ -32,7 +31,6 @@ public class HelloWorldController {
 
     @GetMapping("/health")
     public Map<String, Object> health() {
-        log.info("API called: GET /api/health");
         Map<String, Object> response = new HashMap<>();
         response.put("status", "UP");
         response.put("service", "eSewa Application");
@@ -46,7 +44,6 @@ public class HelloWorldController {
 
     @GetMapping("/info")
     public Map<String, Object> info() {
-        log.info("API called: GET /api/info");
         Map<String, Object> response = new HashMap<>();
         response.put("application", "eSewa - Digital Payment System");
         response.put("version", "1.0.0");
@@ -75,7 +72,6 @@ public class HelloWorldController {
 
     @GetMapping("/users")
     public Map<String, Object> getUsers() {
-        log.info("API called: GET /api/users");
         Map<String, Object> response = new HashMap<>();
         response.put("users", java.util.List.of(
                 Map.of("id", 1, "name", "Sudarshan Uprety", "email", "sudarshan@esewa.com", "balance", 15000.50),
@@ -88,7 +84,6 @@ public class HelloWorldController {
 
     @GetMapping("/transactions")
     public Map<String, Object> getTransactions() {
-        log.info("API called: GET /api/transactions");
         Map<String, Object> response = new HashMap<>();
         response.put("transactions", java.util.List.of(
                 Map.of("id", "TXN001", "from", "Sudarshan", "to", "John", "amount", 1000.00, "type", "transfer",
@@ -105,7 +100,6 @@ public class HelloWorldController {
 
     @GetMapping("/status")
     public Map<String, Object> status() {
-        log.info("API called: GET /api/status");
         Map<String, Object> response = new HashMap<>();
         response.put("application", "eSewa API");
         response.put("status", "operational");
@@ -119,7 +113,13 @@ public class HelloWorldController {
 
     @GetMapping("/test-error/{code}")
         public Map<String, Object> triggerError(@PathVariable String code) {
-            log.error("ELK Test Alert Triggered: Simulating HTTP {} for Zoho Mail testing", code);
+            Map<String, Object> logData = new HashMap<>();
+            logData.put("status_code", Integer.parseInt(code));
+            logData.put("alert_type", "elk-test");
+            logData.put("endpoint", "/api/test-error/" + code);
+            logData.put("message", "Simulated HTTP error");
+
+            log.error("{}", logData);
 
             switch (code) {
                 case "401":
