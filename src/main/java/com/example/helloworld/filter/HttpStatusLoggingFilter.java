@@ -1,6 +1,5 @@
 package com.example.helloworld.filter;
 
-// 1. Add this import (requires the dependency we added to pom.xml)
 import net.logstash.logback.argument.StructuredArguments; 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,17 +23,28 @@ public class HttpStatusLoggingFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // Execute the request first so we can get the resulting status code
+        if ("/favicon.ico".equals(request.getRequestURI())) {
+            filterChain.doFilter(request, response);
+            return; // Skip the log.info part
+        }
+        // 1. Capture the start time in milliseconds
+        long startTime = System.currentTimeMillis();
+
         try {
             filterChain.doFilter(request, response);
         } finally {
-            // 2. Use StructuredArguments.kv to map keys to JSON fields
+            // 2. Calculate duration and convert to seconds (double)
+            double durationSeconds = (System.currentTimeMillis() - startTime) / 1000.0;
+
+            // 3. Log using StructuredArguments
             log.info("HTTP request processed: {} {}", 
                 request.getMethod(), 
                 request.getRequestURI(),
                 StructuredArguments.kv("method", request.getMethod()),
                 StructuredArguments.kv("path", request.getRequestURI()),
-                StructuredArguments.kv("status_code", response.getStatus())
+                StructuredArguments.kv("status_code", response.getStatus()),
+                // This will now output 10.062 instead of 10062
+                StructuredArguments.kv("duration_sec", durationSeconds) 
             );
         }
     }

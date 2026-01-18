@@ -132,6 +132,17 @@ public class HelloWorldController {
         return response;
     }
 
+    @GetMapping("/fast")
+    public Map<String, Object> fast() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Fast Hello from AKS Deployment!");
+        response.put("author", "Sudarshan");
+        response.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        response.put("status", "success");
+        response.put("version", "1.0.0");
+        return response;
+    }
+
     @GetMapping("/test-error/{code}")
         public Map<String, Object> triggerError(@PathVariable String code) {
             switch (code) {
