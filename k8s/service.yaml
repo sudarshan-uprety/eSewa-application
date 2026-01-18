@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: esewa-service
+  namespace: esewa-namespace
+spec:
+  selector:
+    app: esewa-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP

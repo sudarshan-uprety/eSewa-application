@@ -2,8 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: esewa-app
-  labels:
-    app: esewa-app
+  namespace: esewa-namespace
 spec:
   replicas: 2
   selector:
@@ -19,29 +18,25 @@ spec:
       containers:
       - name: esewa-app
         image: sudarshanuprety/esewa:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
         resources:
           requests:
-            memory: "512Mi"
+            memory: "256Mi"
             cpu: "250m"
           limits:
-            memory: "1Gi"
+            memory: "512Mi"
             cpu: "500m"
-        env:
-        - name: SPRING_PROFILES_ACTIVE
-          value: "production"
         livenessProbe:
           httpGet:
-            path: /api/health
-            port: 8080
-          initialDelaySeconds: 60
-          periodSeconds: 10
-          timeoutSeconds: 5
-        readinessProbe:
-          httpGet:
-            path: /api/health
+            path: /
             port: 8080
           initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 10
           periodSeconds: 5
-          timeoutSeconds: 5
