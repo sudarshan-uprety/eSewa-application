@@ -10,6 +10,20 @@ spec:
     name: esewa-app
   minReplicas: 2
   maxReplicas: 50
+  behavior:
+    scaleDown:
+      # How long to wait after the last peak before starting to remove pods
+      stabilizationWindowSeconds: 60 
+      policies:
+      - type: Percent
+        value: 100            # Allow deleting up to 100% of the excess pods
+        periodSeconds: 15     # Perform this check every 15 seconds
+    scaleUp:
+      stabilizationWindowSeconds: 0  # Scale up immediately when load hits
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
   metrics:
   - type: Resource
     resource:
