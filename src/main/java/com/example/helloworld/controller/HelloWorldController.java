@@ -9,6 +9,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.bind.annotation.PathVariable;
 
 @RestController
 @RequestMapping("/api")
@@ -113,4 +116,31 @@ public class HelloWorldController {
         response.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
         return response;
     }
+
+    @GetMapping("/test-error/{code}")
+        public Map<String, Object> triggerError(@PathVariable String code) {
+            log.error("ELK Test Alert Triggered: Simulating HTTP {} for Zoho Mail testing", code);
+
+            switch (code) {
+                case "401":
+                    throw new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED, "Simulated Security Alert: Unauthorized access attempt detected.");
+                
+                case "500":
+                    throw new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR, "Simulated System Alert: Critical Server Failure (NullPointerException).");
+                
+                case "503":
+                    throw new ResponseStatusException(
+                        HttpStatus.SERVICE_UNAVAILABLE, "Simulated Availability Alert: Zoho bridge testing - Service Overloaded.");
+                
+                case "504":
+                    throw new ResponseStatusException(
+                        HttpStatus.GATEWAY_TIMEOUT, "Simulated Network Alert: Gateway Timeout on upstream service.");
+
+                default:
+                    throw new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR, "Simulated Error: Testing status code " + code);
+            }
+        }
 }
