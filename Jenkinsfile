@@ -31,21 +31,27 @@ pipeline {
         
         stage('Build and Push Docker Image') {
             steps {
-                script {
-                    echo "Building and pushing Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'DOCKER',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
                     sh """
-                        echo \$DOCKERHUB_CREDENTIALS_PSW | docker login -u \$DOCKERHUB_CREDENTIALS_USR --password-stdin
+                        echo "=== Logging into Docker Hub ==="
+                        echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
                         
-                        # Build for both amd64 and arm64 platforms
+                        echo "=== Building Docker image ==="
+                        docker buildx rm mybuilder || true
+                        docker buildx create --name mybuilder --use --bootstrap
                         docker buildx build \\
-                            --builder multiarch-builder \\
-                            --platform linux/amd64,linux/arm64 \\
+                            --platform linux/arm64 \\
                             -t ${IMAGE_NAME}:${IMAGE_TAG} \\
                             -t ${IMAGE_NAME}:${IMAGE_BUILD_NUMBER} \\
                             --push .
                         
-                        echo "✅ Multi-platform image pushed successfully"
-                        
+                        echo "=== Logging out ==="
                         docker logout
                     """
                 }
