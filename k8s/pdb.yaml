@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: esewa-app-pdb
+  namespace: esewa-namespace
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: esewa-app

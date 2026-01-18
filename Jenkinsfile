@@ -83,9 +83,15 @@ pipeline {
                     kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/deployment.yaml
                     kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/service.yaml
                     kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/ingress.yaml
-                    
+
+
+                    echo "=== Deploying Scaling & Stability (HPA/PDB) ==="
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/hpa.yaml
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/pdb.yaml
+
                     echo "=== Restarting deployment to pull new image ==="
                     kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true rollout restart deployment/${APP_NAME} -n ${NAMESPACE}
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=120s
                 """
             }
         }
