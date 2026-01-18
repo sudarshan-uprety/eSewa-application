@@ -203,7 +203,7 @@ pipeline {
                     echo "  kubectl get events -n ${NAMESPACE} --sort-by='.lastTimestamp'"
                     echo "  kubectl describe ingress -n ${NAMESPACE}"
                     echo "======================================"
-                    kubectl rollout undo deployment/esewa-app -n esewa-namespace
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true rollout undo deployment/esewa-app -n esewa-namespace
                 """
             }
         }

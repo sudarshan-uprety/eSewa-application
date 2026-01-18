@@ -28,7 +28,7 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: false
-        runAsUser: 1000
+        # runAsUser: 1000
       # THIS IS THE CORRECT LEVEL (Inside spec, outside containers)
       terminationGracePeriodSeconds: 60 
       imagePullSecrets:
