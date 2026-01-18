@@ -18,8 +18,18 @@ import org.springframework.web.bind.annotation.PathVariable;
 public class HelloWorldController {
     private static final Logger log = LoggerFactory.getLogger(HelloWorldController.class);
 
+    private void simulateDelay() {
+            try {
+                Thread.sleep(1000); // 1 second blocking delay
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.error("Thread interrupted", e);
+            }
+        }
+
     @GetMapping("/hello")
     public Map<String, Object> hello() {
+        simulateDelay();
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Hello from AKS Deployment!");
         response.put("author", "Sudarshan");
@@ -31,6 +41,7 @@ public class HelloWorldController {
 
     @GetMapping("/health")
     public Map<String, Object> health() {
+        simulateDelay();
         Map<String, Object> response = new HashMap<>();
         response.put("status", "UP");
         response.put("service", "eSewa Application");
@@ -44,6 +55,7 @@ public class HelloWorldController {
 
     @GetMapping("/info")
     public Map<String, Object> info() {
+        simulateDelay();
         Map<String, Object> response = new HashMap<>();
         response.put("application", "eSewa - Digital Payment System");
         response.put("version", "1.0.0");
@@ -72,6 +84,7 @@ public class HelloWorldController {
 
     @GetMapping("/users")
     public Map<String, Object> getUsers() {
+        simulateDelay();
         Map<String, Object> response = new HashMap<>();
         response.put("users", java.util.List.of(
                 Map.of("id", 1, "name", "Sudarshan Uprety", "email", "sudarshan@esewa.com", "balance", 15000.50),
@@ -84,6 +97,7 @@ public class HelloWorldController {
 
     @GetMapping("/transactions")
     public Map<String, Object> getTransactions() {
+        simulateDelay();
         Map<String, Object> response = new HashMap<>();
         response.put("transactions", java.util.List.of(
                 Map.of("id", "TXN001", "from", "Sudarshan", "to", "John", "amount", 1000.00, "type", "transfer",
@@ -100,6 +114,7 @@ public class HelloWorldController {
 
     @GetMapping("/status")
     public Map<String, Object> status() {
+        simulateDelay();
         Map<String, Object> response = new HashMap<>();
         response.put("application", "eSewa API");
         response.put("status", "operational");
