@@ -11,8 +11,8 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: 1        # One extra pod allowed during update
-      maxUnavailable: 0  # Never drop below 2 pods during update
+      maxSurge: 1       
+      maxUnavailable: 0 
   selector:
     matchLabels:
       app: esewa-app
@@ -26,10 +26,11 @@ spec:
         co.elastic.logs/json.message_key: "message"
         co.elastic.logs/json.ignore_decoding_error: "true"
     spec:
-      # Hardening: Prevents the container from running as root
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
+      # THIS IS THE CORRECT LEVEL (Inside spec, outside containers)
+      terminationGracePeriodSeconds: 60 
       imagePullSecrets:
       - name: dockerhub-secret
       containers:
@@ -40,14 +41,12 @@ spec:
         - containerPort: 8080
           name: http
         resources:
-          # Crucial for HPA to work correctly
           requests:
             memory: "256Mi"
             cpu: "250m"
           limits:
             memory: "512Mi"
             cpu: "500m"
-        # Adjusted timings for faster recovery
         livenessProbe:
           httpGet:
             path: /api/health
@@ -61,5 +60,4 @@ spec:
             port: 8080
           initialDelaySeconds: 15
           periodSeconds: 20
-        # Gives the app time to finish active requests before shutting down
-        terminationGracePeriodSeconds: 60
+          timeoutSeconds: 5
