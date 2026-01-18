@@ -12,6 +12,9 @@ import java.time.format.DateTimeFormatter;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 @RestController
 @RequestMapping("/api")
@@ -142,6 +145,24 @@ public class HelloWorldController {
         response.put("version", "1.0.0");
         return response;
     }
+
+    @GetMapping({"/echo/{name}", "/echo"})
+        public Map<String, Object> dynamicEcho(
+                @PathVariable(required = false) String name,
+                @RequestParam(required = false, defaultValue = "Guest") String role,
+                @RequestParam(required = false) Map<String, String> allParams) {
+            
+            // No simulateDelay() here so we can keep it "Fast"
+            Map<String, Object> response = new HashMap<>();
+            
+            response.put("greeting", "Hello, " + (name != null ? name : "Stranger"));
+            response.put("assigned_role", role);
+            response.put("all_query_params", allParams);
+            response.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            response.put("status", "success");
+            
+            return response;
+        }
 
     @GetMapping("/test-error/{code}")
         public Map<String, Object> triggerError(@PathVariable String code) {
