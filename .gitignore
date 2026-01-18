@@ -21,3 +21,5 @@ target
 .terraform/
 *.tfvars
 .terraform.lock.hcl
+venv
+test.py

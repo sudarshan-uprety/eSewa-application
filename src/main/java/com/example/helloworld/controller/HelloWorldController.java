@@ -20,7 +20,7 @@ public class HelloWorldController {
 
     private void simulateDelay() {
             try {
-                Thread.sleep(1000); // 1 second blocking delay
+                Thread.sleep(10000); // 1 second blocking delay
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 log.error("Thread interrupted", e);
