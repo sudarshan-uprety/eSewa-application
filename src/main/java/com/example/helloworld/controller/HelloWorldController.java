@@ -19,13 +19,19 @@ public class HelloWorldController {
     private static final Logger log = LoggerFactory.getLogger(HelloWorldController.class);
 
     private void simulateDelay() {
-            try {
-                Thread.sleep(10000); // 1 second blocking delay
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.error("Thread interrupted", e);
+        try {
+            // This generates actual CPU load
+            long startTime = System.currentTimeMillis();
+            while (System.currentTimeMillis() - startTime < 2000) {
+                // Busy wait / Heavy Math for 2 seconds to spike CPU
+                java.util.UUID.randomUUID().toString(); 
             }
+            // Then sleep for the rest
+            Thread.sleep(8000); 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
+    }
 
     @GetMapping("/hello")
     public Map<String, Object> hello() {
