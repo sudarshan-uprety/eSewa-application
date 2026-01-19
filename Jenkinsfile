@@ -80,6 +80,7 @@ pipeline {
                         --dry-run=client -o yaml | kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f -
                     
                     echo "=== Deploying to Kubernetes namespace: ${NAMESPACE} ==="
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/cluster-issuer.yaml
                     kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/deployment.yaml
                     kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/service.yaml
                     kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/ingress.yaml
