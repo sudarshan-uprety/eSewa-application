@@ -35,11 +35,32 @@ spec:
         - containerPort: 5432
           name: postgres
         env:
+        - name: POSTGRESQL_REPLICATION_MODE
+          value: "master"
+        - name: POSTGRESQL_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: postgres-password
+        - name: POSTGRESQL_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: database-user
         - name: POSTGRESQL_PASSWORD
           valueFrom:
             secretKeyRef:
               name: postgres-secrets
               key: database-password
+        - name: POSTGRESQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: database-name
+        - name: POSTGRESQL_MASTER_HOST
+          value: "postgres-0.postgres-primary.esewa-namespace.svc.cluster.local"
+        - name: POSTGRESQL_MASTER_PORT_NUMBER
+          value: "5432"
         - name: POSTGRESQL_REPLICATION_USER
           value: "repl_user"
         - name: POSTGRESQL_REPLICATION_PASSWORD
@@ -47,23 +68,6 @@ spec:
             secretKeyRef:
               name: postgres-secrets
               key: replication-password
-        - name: POSTGRESQL_MASTER_HOST
-          value: "postgres-0.postgres-primary.esewa-namespace.svc.cluster.local"
-        - name: POSTGRESQL_DATABASE
-          valueFrom:
-            secretKeyRef:
-              name: postgres-secrets
-              key: database-name
-        - name: POSTGRESQL_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: postgres-secrets
-              key: database-user
-        - name: POSTGRESQL_POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: postgres-secrets
-              key: postgres-password
         command:
         - /bin/bash
         - -c
@@ -71,7 +75,7 @@ spec:
           if [[ $HOSTNAME == "postgres-0" ]]; then
             export POSTGRESQL_REPLICATION_MODE=master
           else
-            export POSTGRESQL_REPLICATION_MODE=slave
+            export POSTGRESQL_REPLICATION_MODE=replica
           fi
           /opt/bitnami/scripts/postgresql/entrypoint.sh /opt/bitnami/scripts/postgresql/run.sh
         volumeMounts:
