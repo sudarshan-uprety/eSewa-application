@@ -47,6 +47,21 @@ public class DatabaseController {
     // 3. Write to orders table
     @PostMapping("/orders")
     public Order createOrder(@Valid @RequestBody Order order) {
+        if (order.getUser() == null || order.getUser().getId() == null) {
+            throw new RuntimeException("User ID is required for creating an order");
+        }
+        if (order.getProduct() == null || order.getProduct().getId() == null) {
+            throw new RuntimeException("Product ID is required for creating an order");
+        }
+
+        // Fetch existing user and product to avoid TransientPropertyValueException
+        User user = userRepository.findById(order.getUser().getId())
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + order.getUser().getId()));
+        Product product = productRepository.findById(order.getProduct().getId())
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + order.getProduct().getId()));
+
+        order.setUser(user);
+        order.setProduct(product);
         return orderRepository.save(order);
     }
 

@@ -23,4 +23,3 @@ target
 .terraform.lock.hcl
 venv
 test.py
-load_test.py

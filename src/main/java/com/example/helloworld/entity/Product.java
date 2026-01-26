@@ -11,7 +11,7 @@ import javax.validation.constraints.NotNull;
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @JsonProperty
     private Long id;
 
     @NotBlank(message = "Product name is required")
