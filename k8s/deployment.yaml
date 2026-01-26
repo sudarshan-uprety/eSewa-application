@@ -47,6 +47,21 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:postgresql://postgres-primary.esewa-namespace.svc.cluster.local:5432/esewadb"
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: database-user
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: database-password
+        - name: DB_READ_URL
+          value: "jdbc:postgresql://postgres-read.esewa-namespace.svc.cluster.local:5432/esewadb"
         # livenessProbe:
         #   httpGet:
         #     path: /api/health

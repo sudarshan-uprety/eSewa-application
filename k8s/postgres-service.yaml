@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-primary
+  namespace: esewa-namespace
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgres
+  selector:
+    statefulset.kubernetes.io/pod-name: postgres-0
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-read
+  namespace: esewa-namespace
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgres
+  selector:
+    app: postgres
+    # This will include the primary too, but for read-only traffic it's fine.
+    # To exclude primary, we'd need a label that only replicas have.

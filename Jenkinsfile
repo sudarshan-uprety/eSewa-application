@@ -79,6 +79,12 @@ pipeline {
                         -n ${NAMESPACE} \\
                         --dry-run=client -o yaml | kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f -
                     
+                    echo "=== Deploying PostgreSQL Database ==="
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/postgres-secrets.yaml
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/postgres-configmap.yaml
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/postgres-statefulset.yaml
+                    kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/postgres-service.yaml
+
                     echo "=== Deploying to Kubernetes namespace: ${NAMESPACE} ==="
                     kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/cluster-issuer.yaml
                     kubectl --server=${K8S_SERVER} --insecure-skip-tls-verify=true apply -f k8s/deployment.yaml

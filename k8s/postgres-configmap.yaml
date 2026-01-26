@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: esewa-namespace
+data:
+  # Any custom configuration or initialization scripts can go here
+  setup.sql: |
+    -- Custom initialization SQL
+    CREATE TABLE IF NOT EXISTS health_check (
+      id SERIAL PRIMARY KEY,
+      status VARCHAR(50) NOT NULL,
+      checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    INSERT INTO health_check (status) VALUES ('OK');

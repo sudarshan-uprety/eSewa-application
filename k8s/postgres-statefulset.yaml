@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: esewa-namespace
+spec:
+  serviceName: "postgres-primary"
+  replicas: 6
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgresql
+        image: bitnami/postgresql:15
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRESQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: postgres-password
+        - name: POSTGRESQL_REPLICATION_MODE
+          value: "slave" # Default to slave, will override for pod-0
+        - name: POSTGRESQL_REPLICATION_USER
+          value: "repl_user"
+        - name: POSTGRESQL_REPLICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: replication-password
+        - name: POSTGRESQL_MASTER_HOST
+          value: "postgres-0.postgres-primary.esewa-namespace.svc.cluster.local"
+        - name: POSTGRESQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: database-name
+        - name: POSTGRESQL_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: database-user
+        - name: POSTGRESQL_POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: postgres-password
+        # Logic to set master mode for postgres-0
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/bash", "-c", "if [[ $HOSTNAME == 'postgres-0' ]]; then export POSTGRESQL_REPLICATION_MODE=master; fi"]
+        # Note: Bitnami image handles replication mode via env vars. 
+        # For a more robust setup, we use an init container to set the mode.
+      initContainers:
+      - name: init-postgres
+        image: bitnami/postgresql:15
+        command:
+        - /bin/bash
+        - -c
+        - |
+          if [[ $HOSTNAME == "postgres-0" ]]; then
+            echo "master" > /shared/mode
+          else
+            echo "slave" > /shared/mode
+          fi
+        volumeMounts:
+        - name: shared-data
+          mountPath: /shared
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
