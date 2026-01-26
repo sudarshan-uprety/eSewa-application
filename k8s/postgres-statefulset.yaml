@@ -14,9 +14,11 @@ spec:
       labels:
         app: postgres
     spec:
+      imagePullSecrets:
+      - name: dockerhub-secret
       containers:
       - name: postgresql
-        image: bitnami/postgresql:15
+        image: bitnami/postgresql:latest
         ports:
         - containerPort: 5432
           name: postgres
