@@ -39,7 +39,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: postgres-secrets
-              key: postgres-password
+              key: database-password
         - name: POSTGRESQL_REPLICATION_USER
           value: "repl_user"
         - name: POSTGRESQL_REPLICATION_PASSWORD
