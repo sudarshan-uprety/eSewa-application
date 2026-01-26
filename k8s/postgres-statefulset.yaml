@@ -19,6 +19,15 @@ spec:
         runAsUser: 1001
       imagePullSecrets:
       - name: dockerhub-secret
+      initContainers:
+      - name: volume-permissions
+        image: bitnami/postgresql:latest
+        command: ["/bin/sh", "-c", "chown -R 1001:1001 /bitnami/postgresql"]
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+        - name: data
+          mountPath: /bitnami/postgresql
       containers:
       - name: postgresql
         image: bitnami/postgresql:latest
