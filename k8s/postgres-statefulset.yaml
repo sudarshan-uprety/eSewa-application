@@ -26,8 +26,6 @@ spec:
             secretKeyRef:
               name: postgres-secrets
               key: postgres-password
-        - name: POSTGRESQL_REPLICATION_MODE
-          value: "slave" # Default to slave, will override for pod-0
         - name: POSTGRESQL_REPLICATION_USER
           value: "repl_user"
         - name: POSTGRESQL_REPLICATION_PASSWORD
@@ -52,28 +50,19 @@ spec:
             secretKeyRef:
               name: postgres-secrets
               key: postgres-password
-        # Logic to set master mode for postgres-0
-        lifecycle:
-          postStart:
-            exec:
-              command: ["/bin/bash", "-c", "if [[ $HOSTNAME == 'postgres-0' ]]; then export POSTGRESQL_REPLICATION_MODE=master; fi"]
-        # Note: Bitnami image handles replication mode via env vars. 
-        # For a more robust setup, we use an init container to set the mode.
-      initContainers:
-      - name: init-postgres
-        image: bitnami/postgresql:15
         command:
         - /bin/bash
         - -c
         - |
           if [[ $HOSTNAME == "postgres-0" ]]; then
-            echo "master" > /shared/mode
+            export POSTGRESQL_REPLICATION_MODE=master
           else
-            echo "slave" > /shared/mode
+            export POSTGRESQL_REPLICATION_MODE=slave
           fi
+          /opt/bitnami/scripts/postgresql/entrypoint.sh /opt/bitnami/scripts/postgresql/run.sh
         volumeMounts:
-        - name: shared-data
-          mountPath: /shared
+        - name: data
+          mountPath: /bitnami/postgresql
   volumeClaimTemplates:
   - metadata:
       name: data
