@@ -42,10 +42,10 @@ spec:
           name: http
         resources:
           requests:
-            memory: "256Mi"
+            memory: "512Mi"
             cpu: "250m"
           limits:
-            memory: "512Mi"
+            memory: "1Gi"
             cpu: "500m"
         env:
         - name: SPRING_DATASOURCE_URL
@@ -62,6 +62,8 @@ spec:
               key: database-password
         - name: DB_READ_URL
           value: "jdbc:postgresql://postgres-read.esewa-namespace.svc.cluster.local:5432/esewadb"
+        - name: JAVA_TOOL_OPTIONS
+          value: "-Xms256m -Xmx768m -XX:+UseG1GC -XX:MaxMetaspaceSize=256m"
         # livenessProbe:
         #   httpGet:
         #     path: /api/health
